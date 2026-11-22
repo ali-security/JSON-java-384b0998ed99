@@ -38,6 +38,44 @@ import org.json.*;
 public class Util {
 
     /**
+     * Stack size, in bytes, of the thread used by {@link #throwableFromLargeStack(Runnable)}.
+     */
+    private static final long LARGE_STACK_SIZE = 8L * 1024 * 1024;
+
+    /**
+     * Runs the given task on a dedicated thread with a large (8 MB) stack and
+     * returns whatever it threw. The test suite may be run with a small stack
+     * (for example -Xss512k), in which case a parser that legitimately stops at
+     * its maximum nesting depth could still overflow the stack before reaching
+     * that limit. Running the task on a large stack makes the outcome depend
+     * only on the parser's own nesting depth guard.
+     * @param task the code to run
+     * @return the Throwable thrown by the task, or <code>null</code> if the
+     *      task completed normally
+     */
+    public static Throwable throwableFromLargeStack(final Runnable task) {
+        final Throwable[] thrown = new Throwable[1];
+        Thread thread = new Thread(null, new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    task.run();
+                } catch (Throwable t) {
+                    thrown[0] = t;
+                }
+            }
+        }, "large-stack-test", LARGE_STACK_SIZE);
+        thread.start();
+        try {
+            thread.join();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("Interrupted while waiting for " + thread.getName(), e);
+        }
+        return thrown[0];
+    }
+
+    /**
      * Compares two JSONArrays for equality.
      * The arrays need not be in the same order.
      * @param jsonArray created by the code to be tested

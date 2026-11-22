@@ -1071,7 +1071,49 @@ public class XMLConfigurationTest {
 
         Util.compareActualVsExpectedJsonObjects(jsonObject, expetedJsonObject);
     }
-    
+
+    @Test
+    public void testMaxNestingDepthIsSet() {
+        XMLParserConfiguration xmlParserConfiguration = XMLParserConfiguration.ORIGINAL;
+
+        assertEquals(xmlParserConfiguration.getMaxNestingDepth(), XMLParserConfiguration.DEFAULT_MAXIMUM_NESTING_DEPTH);
+
+        xmlParserConfiguration = xmlParserConfiguration.withMaxNestingDepth(42);
+
+        assertEquals(xmlParserConfiguration.getMaxNestingDepth(), 42);
+
+        xmlParserConfiguration = xmlParserConfiguration.withMaxNestingDepth(0);
+
+        assertEquals(xmlParserConfiguration.getMaxNestingDepth(), 0);
+
+        xmlParserConfiguration = xmlParserConfiguration.withMaxNestingDepth(-31415926);
+
+        assertEquals(xmlParserConfiguration.getMaxNestingDepth(), XMLParserConfiguration.UNDEFINED_MAXIMUM_NESTING_DEPTH);
+
+        xmlParserConfiguration = xmlParserConfiguration.withMaxNestingDepth(Integer.MIN_VALUE);
+
+        assertEquals(xmlParserConfiguration.getMaxNestingDepth(), XMLParserConfiguration.UNDEFINED_MAXIMUM_NESTING_DEPTH);
+    }
+
+    /**
+     * The maximum nesting depth must be carried over when the configuration
+     * is copied by any of the other with*() builder methods.
+     */
+    @Test
+    public void testMaxNestingDepthSurvivesFurtherConfiguration() {
+        Set<String> forceList = new HashSet<String>();
+        forceList.add("a");
+
+        XMLParserConfiguration xmlParserConfiguration = XMLParserConfiguration.ORIGINAL
+                .withMaxNestingDepth(42)
+                .withKeepStrings(true)
+                .withcDataTagName("altContent")
+                .withConvertNilAttributeToNull(true)
+                .withForceList(forceList);
+
+        assertEquals(42, xmlParserConfiguration.getMaxNestingDepth());
+    }
+
     /**
      * Convenience method, given an input string and expected result,
      * convert to JSONObject and compare actual to expected result.
